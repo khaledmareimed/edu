@@ -19,15 +19,9 @@ function formatTimeAgo(date: Date): string {
 }
 
 export function ExamGenerationStatus({ examGeneration }: ExamGenerationStatusProps) {
-    // #region agent log
-    fetch('http://localhost:7242/ingest/6d091984-4bbd-46fb-90d3-336c16b7e90a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'exam-generation-status.tsx:23',message:'Function entry - examGeneration param',data:{examGeneration:examGeneration,isNull:examGeneration===null,isUndefined:examGeneration===undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H1,H2,H4'})}).catch(()=>{});
-    // #endregion
     if (!examGeneration) return null
 
     const { status: rawStatus, chunksProcessed, totalChunks, error, startedAt, completedAt } = examGeneration
-    // #region agent log
-    fetch('http://localhost:7242/ingest/6d091984-4bbd-46fb-90d3-336c16b7e90a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'exam-generation-status.tsx:28',message:'After destructuring - status value',data:{status:rawStatus,statusType:typeof rawStatus,statusValue:JSON.stringify(rawStatus),chunksProcessed:chunksProcessed,totalChunks:totalChunks},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H1,H2,H3'})}).catch(()=>{});
-    // #endregion
 
     // Normalize status values - map database statuses to component statuses
     const normalizeStatus = (status: string): "pending" | "processing" | "completed" | "failed" => {
@@ -40,9 +34,6 @@ export function ExamGenerationStatus({ examGeneration }: ExamGenerationStatusPro
     }
 
     const status = normalizeStatus(rawStatus)
-    // #region agent log
-    fetch('http://localhost:7242/ingest/6d091984-4bbd-46fb-90d3-336c16b7e90a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'exam-generation-status.tsx:42',message:'After status normalization',data:{rawStatus:rawStatus,normalizedStatus:status},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H1'})}).catch(()=>{});
-    // #endregion
 
     const statusConfig = {
         pending: {
@@ -79,13 +70,7 @@ export function ExamGenerationStatus({ examGeneration }: ExamGenerationStatusPro
         }
     }
 
-    // #region agent log
-    fetch('http://localhost:7242/ingest/6d091984-4bbd-46fb-90d3-336c16b7e90a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'exam-generation-status.tsx:64',message:'Before config lookup',data:{status:status,statusConfigKeys:Object.keys(statusConfig),hasKey:status in statusConfig},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H1,H3'})}).catch(()=>{});
-    // #endregion
     const config = statusConfig[status]
-    // #region agent log
-    fetch('http://localhost:7242/ingest/6d091984-4bbd-46fb-90d3-336c16b7e90a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'exam-generation-status.tsx:68',message:'After config lookup',data:{config:config,isUndefined:config===undefined,configKeys:config?Object.keys(config):null},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H1,H2,H3'})}).catch(()=>{});
-    // #endregion
     const Icon = config.icon
     const isProcessing = status === "processing"
     const progress = totalChunks > 0 ? (chunksProcessed / totalChunks) * 100 : 0

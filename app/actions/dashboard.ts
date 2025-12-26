@@ -190,27 +190,14 @@ export async function deleteFile(id: string, subjectId: string) {
 
 export async function getFile(id: string): Promise<File | null> {
     try {
-        // #region agent log
-        const fs = await import('fs'); fs.appendFileSync('/teamspace/studios/this_studio/edu/.cursor/debug.log', JSON.stringify({location:'dashboard.ts:193',message:'getFile called',data:{fileId:id,idType:typeof id,idLength:id?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'mobile-debug',hypothesisId:'H1'})+'\n');
-        // #endregion
         const user = await getUser()
-        // #region agent log
-        fs.appendFileSync('/teamspace/studios/this_studio/edu/.cursor/debug.log', JSON.stringify({location:'dashboard.ts:198',message:'User fetched',data:{userEmail:user?.email,hasUser:!!user},timestamp:Date.now(),sessionId:'debug-session',runId:'mobile-debug',hypothesisId:'H2'})+'\n');
-        // #endregion
         const db = await getDb()
         const file = await db.collection(FILE_COLLECTION).findOne({
             _id: new ObjectId(id),
             userEmail: user.email
         })
-        // #region agent log
-        fs.appendFileSync('/teamspace/studios/this_studio/edu/.cursor/debug.log', JSON.stringify({location:'dashboard.ts:207',message:'DB query result',data:{fileFound:!!file,fileId:file?._id?.toString(),fileTitle:file?.title,fileContentLength:file?.content?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'mobile-debug',hypothesisId:'H3,H5'})+'\n');
-        // #endregion
 
         if (!file) return null
-
-        // #region agent log
-        fs.appendFileSync('/teamspace/studios/this_studio/edu/.cursor/debug.log', JSON.stringify({location:'dashboard.ts:202',message:'Raw file from DB',data:{hasExamGeneration:!!file.examGeneration,examGenerationKeys:file.examGeneration?Object.keys(file.examGeneration):null,rawStatus:file.examGeneration?.status,rawStatusType:typeof file.examGeneration?.status},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H1,H4,H5'})+'\n');
-        // #endregion
 
         return {
             _id: file._id.toString(),
