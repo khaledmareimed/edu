@@ -20,7 +20,7 @@ export default async function FilePage({
     // #endregion
     const file = await getFile(id)
     // #region agent log
-    fs.appendFileSync('/teamspace/studios/this_studio/edu/.cursor/debug.log', JSON.stringify({location:'file-page.tsx:23',message:'File fetch result',data:{fileIsNull:file===null,fileIsUndefined:file===undefined,fileId:file?._id,fileHasContent:file?.content?.length>0},timestamp:Date.now(),sessionId:'debug-session',runId:'mobile-debug',hypothesisId:'H3,H5'})+'\n');
+    fs.appendFileSync('/teamspace/studios/this_studio/edu/.cursor/debug.log', JSON.stringify({location:'file-page.tsx:23',message:'File fetch result',data:{fileIsNull:file===null,fileIsUndefined:file===undefined,fileId:file?._id,fileHasContent:file?.content ? file.content.length>0 : false},timestamp:Date.now(),sessionId:'debug-session',runId:'mobile-debug',hypothesisId:'H3,H5'})+'\n');
     // #endregion
 
     if (!file) {
