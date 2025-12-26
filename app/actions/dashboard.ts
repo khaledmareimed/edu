@@ -206,7 +206,15 @@ export async function getFile(id: string): Promise<File | null> {
             subjectId: file.subjectId as string,
             userEmail: file.userEmail as string,
             createdAt: file.createdAt as Date,
-            updatedAt: file.updatedAt as Date | undefined
+            updatedAt: file.updatedAt as Date | undefined,
+            examGeneration: file.examGeneration ? {
+                chunksProcessed: file.examGeneration.chunksProcessed as number,
+                error: file.examGeneration.error as string | null,
+                startedAt: file.examGeneration.startedAt as Date,
+                status: file.examGeneration.status as "pending" | "processing" | "completed" | "failed",
+                totalChunks: file.examGeneration.totalChunks as number,
+                completedAt: file.examGeneration.completedAt as Date | undefined
+            } : undefined
         }
     } catch (e) {
         return null

@@ -7,6 +7,15 @@ export interface Subject {
     createdAt: Date
 }
 
+export interface ExamGeneration {
+    chunksProcessed: number
+    error: string | null
+    startedAt: Date
+    status: "pending" | "processing" | "completed" | "failed"
+    totalChunks: number
+    completedAt?: Date
+}
+
 export interface File {
     _id: string
     title: string
@@ -15,4 +24,5 @@ export interface File {
     userEmail: string
     createdAt: Date
     updatedAt?: Date
+    examGeneration?: ExamGeneration
 }

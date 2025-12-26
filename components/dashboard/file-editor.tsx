@@ -7,12 +7,14 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { ExamTypeModal } from "./exam-type-modal"
+import { ExamGenerationStatus } from "./exam-generation-status"
+import { File as FileModel } from "@/types/dashboard"
 
 export function FileEditor({
     file,
     subjectId
 }: {
-    file: any
+    file: FileModel & { exams?: any }
     subjectId: string
 }) {
     const [content, setContent] = useState(file.content || "")
@@ -55,7 +57,14 @@ export function FileEditor({
         // Set worker path to use our local copy (no CORS issues)
         pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 
-        const arrayBuffer = await file.arrayBuffer()
+        // Convert File to ArrayBuffer using FileReader for better TypeScript compatibility
+        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result as ArrayBuffer)
+            reader.onerror = reject
+            reader.readAsArrayBuffer(file)
+        })
+
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
 
         let fullText = ""
@@ -303,6 +312,8 @@ export function FileEditor({
                     </button>
                 </div>
             </div>
+
+            <ExamGenerationStatus examGeneration={file.examGeneration} />
 
             <textarea
                 value={content}
