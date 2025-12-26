@@ -1,0 +1,18 @@
+export interface Subject {
+    _id: string
+    title: string
+    color: string
+    icon: string
+    userEmail: string
+    createdAt: Date
+}
+
+export interface File {
+    _id: string
+    title: string
+    content: string
+    subjectId: string
+    userEmail: string
+    createdAt: Date
+    updatedAt?: Date
+}
