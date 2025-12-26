@@ -14,7 +14,7 @@ export function FileEditor({
     file,
     subjectId
 }: {
-    file: FileModel & { exams?: any }
+    file: FileModel
     subjectId: string
 }) {
     const [content, setContent] = useState(file.content || "")
@@ -272,7 +272,7 @@ export function FileEditor({
                                 <FileText className="mr-2 h-4 w-4" />
                                 Create Flash Cards
                             </button>
-                            {file.exams && (file.exams.mcqs?.length > 0 || file.exams.fillBlanks?.length > 0 || file.exams.solutions?.length > 0) && (
+                            {file.exams && ((file.exams.mcqs?.length ?? 0) > 0 || (file.exams.fillBlanks?.length ?? 0) > 0 || (file.exams.solutions?.length ?? 0) > 0) && (
                                 <button
                                     onClick={handleDownloadPdf}
                                     disabled={isDownloadingPdf}

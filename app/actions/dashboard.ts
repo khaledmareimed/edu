@@ -227,7 +227,8 @@ export async function getFile(id: string): Promise<File | null> {
                 status: file.examGeneration.status as "pending" | "processing" | "completed" | "failed" | "generating",
                 totalChunks: file.examGeneration.totalChunks as number,
                 completedAt: file.examGeneration.completedAt as Date | undefined
-            } : undefined
+            } : undefined,
+            exams: file.exams as any
         }
     } catch (e) {
         return null

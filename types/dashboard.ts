@@ -25,4 +25,9 @@ export interface File {
     createdAt: Date
     updatedAt?: Date
     examGeneration?: ExamGeneration
+    exams?: {
+        mcqs?: any[]
+        fillBlanks?: any[]
+        solutions?: any[]
+    }
 }
