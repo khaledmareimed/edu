@@ -2,6 +2,7 @@
 
 import { ExamGeneration } from "@/types/dashboard"
 import { CheckCircle2, XCircle, Loader2, Clock, AlertCircle } from "lucide-react"
+import { useState, useEffect } from "react"
 
 interface ExamGenerationStatusProps {
     examGeneration?: ExamGeneration
@@ -19,6 +20,12 @@ function formatTimeAgo(date: Date): string {
 }
 
 export function ExamGenerationStatus({ examGeneration }: ExamGenerationStatusProps) {
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
     if (!examGeneration) return null
 
     const { status: rawStatus, chunksProcessed, totalChunks, error, startedAt, completedAt } = examGeneration
@@ -86,8 +93,8 @@ export function ExamGenerationStatus({ examGeneration }: ExamGenerationStatusPro
                         <h3 className={`text-sm font-semibold ${config.color}`}>
                             Exam Generation: {config.label}
                         </h3>
-                        {startedAt && (
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {startedAt && mounted && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400" suppressHydrationWarning>
                                 Started {formatTimeAgo(startedAt)}
                             </span>
                         )}
@@ -112,8 +119,8 @@ export function ExamGenerationStatus({ examGeneration }: ExamGenerationStatusPro
                     )}
 
                     {/* Completion time */}
-                    {completedAt && status === "completed" && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {completedAt && status === "completed" && mounted && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1" suppressHydrationWarning>
                             Completed {formatTimeAgo(completedAt)}
                         </p>
                     )}

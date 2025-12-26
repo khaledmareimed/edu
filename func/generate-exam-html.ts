@@ -1,99 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/auth"
-import clientPromise from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
-import { generateExamHTML } from "@/func/generate-exam-html"
-
-export async function POST(req: NextRequest) {
-    try {
-        const session = await auth()
-        if (!session?.user?.email) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-        }
-
-        const body = await req.json()
-        const { fileId } = body
-
-        if (!fileId) {
-            return NextResponse.json({ error: "Missing fileId" }, { status: 400 })
-        }
-
-        // Fetch file from database
-        const client = await clientPromise
-        const db = client.db("edu_app")
-        const file = await db.collection("files").findOne({
-            _id: new ObjectId(fileId),
-            userEmail: session.user.email
-        })
-
-        if (!file) {
-            return NextResponse.json({ error: "File not found" }, { status: 404 })
-        }
-
-        if (!file.exams || (!file.exams.mcqs?.length && !file.exams.fillBlanks?.length && !file.exams.solutions?.length)) {
-            return NextResponse.json({ error: "No exams found for this file" }, { status: 400 })
-        }
-
-        // Generate HTML
-        const html = generateExamHTML(
-            file.title || "Exam",
-            file.exams.mcqs || [],
-            file.exams.fillBlanks || [],
-            file.exams.solutions || []
-        )
-
-        // Call APDF API with timeout (25 seconds to stay under Heroku's 30s limit)
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 25000)
-
-        try {
-            const apdfResponse = await fetch("https://apdf.io/api/pdf/file/create", {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${process.env.APDF_API_TOKEN}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ html }),
-                signal: controller.signal
-            })
-
-            clearTimeout(timeoutId)
-
-            if (!apdfResponse.ok) {
-                const errorData = await apdfResponse.text()
-                console.error("APDF API error:", errorData)
-                throw new Error("Failed to generate PDF")
-            }
-
-            const pdfData = await apdfResponse.json()
-
-            return NextResponse.json({
-                success: true,
-                pdfUrl: pdfData.file,
-                pages: pdfData.pages,
-                size: pdfData.size
-            })
-        } catch (fetchError: any) {
-            clearTimeout(timeoutId)
-            
-            if (fetchError.name === 'AbortError') {
-                console.error("APDF API timeout after 25 seconds")
-                throw new Error("PDF generation is taking too long. Please try again with a smaller exam.")
-            }
-            throw fetchError
-        }
-
-    } catch (error: any) {
-        console.error("Error generating PDF:", error)
-        return NextResponse.json(
-            { error: error.message || "Failed to generate PDF" },
-            { status: 500 }
-        )
-    }
-}
-
-// Moved to /func/generate-exam-html.ts for reuse
-function generateExamHTML_OLD(
+export function generateExamHTML(
     title: string,
     mcqs: any[],
     fillBlanks: any[],
@@ -129,6 +34,9 @@ function generateExamHTML_OLD(
             font-size: 12pt;
             line-height: 1.6;
             color: #000;
+            max-width: 21cm;
+            margin: 0 auto;
+            padding: 2cm 1.5cm;
         }
         
         .header {
@@ -404,3 +312,4 @@ function generateExamHTML_OLD(
 </html>
     `.trim()
 }
+

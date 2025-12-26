@@ -1,8 +1,8 @@
 "use client"
 
 import { updateFile } from "@/app/actions/dashboard"
-import { useState, useRef } from "react"
-import { Save, Loader2, ArrowLeft, Upload, FileText, Download } from "lucide-react"
+import { useState, useRef, useEffect } from "react"
+import { Save, Loader2, ArrowLeft, Upload, FileText, Download, ChevronDown, FileCode } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -23,8 +23,27 @@ export function FileEditor({
     const [lastSaved, setLastSaved] = useState<Date | null>(null)
     const [isExamModalOpen, setIsExamModalOpen] = useState(false)
     const [isDownloadingPdf, setIsDownloadingPdf] = useState(false)
+    const [showDownloadMenu, setShowDownloadMenu] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const downloadMenuRef = useRef<HTMLDivElement>(null)
     const router = useRouter()
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (downloadMenuRef.current && !downloadMenuRef.current.contains(event.target as Node)) {
+                setShowDownloadMenu(false)
+            }
+        }
+
+        if (showDownloadMenu) {
+            document.addEventListener('mousedown', handleClickOutside)
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+        }
+    }, [showDownloadMenu])
 
     const handleSave = async () => {
         setIsSaving(true)
@@ -106,8 +125,75 @@ export function FileEditor({
     }
 
     const handleDownloadPdf = async () => {
+        setShowDownloadMenu(false)
         setIsDownloadingPdf(true)
         const toastId = toast.loading("Generating PDF...", {
+            description: "Creating your exam document"
+        })
+
+        try {
+            // Get HTML from API
+            const response = await fetch("/api/export-exam-html", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    fileId: file._id
+                })
+            })
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                throw new Error(data.error || "Failed to generate exam")
+            }
+
+            // Call APDF API from client-side (bypasses Heroku timeout)
+            const apiToken = process.env.NEXT_PUBLIC_APDF_API_TOKEN
+            
+            if (!apiToken) {
+                throw new Error("APDF API token not configured. Please set NEXT_PUBLIC_APDF_API_TOKEN environment variable.")
+            }
+
+            const apdfResponse = await fetch("https://apdf.io/api/pdf/file/create", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${apiToken}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ html: data.html })
+            })
+
+            if (!apdfResponse.ok) {
+                const errorData = await apdfResponse.text()
+                console.error("APDF API error:", errorData)
+                throw new Error("Failed to generate PDF from APDF")
+            }
+
+            const pdfData = await apdfResponse.json()
+
+            // Open PDF in new tab
+            window.open(pdfData.file, '_blank')
+
+            toast.success("PDF generated successfully!", {
+                id: toastId,
+                description: `${pdfData.pages} page(s), ${Math.round(pdfData.size / 1024)}KB`
+            })
+        } catch (error: any) {
+            console.error("Error generating PDF:", error)
+            toast.error("Failed to generate PDF", {
+                id: toastId,
+                description: error.message || "Please try again later"
+            })
+        } finally {
+            setIsDownloadingPdf(false)
+        }
+    }
+
+    const handleDownloadHtml = async () => {
+        setShowDownloadMenu(false)
+        const toastId = toast.loading("Generating HTML...", {
             description: "Creating your exam document"
         })
 
@@ -125,24 +211,47 @@ export function FileEditor({
             const data = await response.json()
 
             if (!response.ok) {
-                throw new Error(data.error || "Failed to generate PDF")
+                throw new Error(data.error || "Failed to generate exam")
             }
 
-            // Open PDF in new tab
-            window.open(data.pdfUrl, '_blank')
+            // Get the HTML content from the API
+            const htmlResponse = await fetch("/api/export-exam-html", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    fileId: file._id
+                })
+            })
 
-            toast.success("PDF generated successfully!", {
+            const htmlData = await htmlResponse.json()
+
+            if (!htmlResponse.ok) {
+                throw new Error(htmlData.error || "Failed to generate HTML")
+            }
+
+            // Create and download HTML file
+            const blob = new Blob([htmlData.html], { type: 'text/html' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `${file.title || 'exam'}.html`
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            URL.revokeObjectURL(url)
+
+            toast.success("HTML generated successfully!", {
                 id: toastId,
-                description: `${data.pages} page(s), ${Math.round(data.size / 1024)}KB`
+                description: "Your exam has been downloaded"
             })
         } catch (error: any) {
-            console.error("Error generating PDF:", error)
-            toast.error("Failed to generate PDF", {
+            console.error("Error generating HTML:", error)
+            toast.error("Failed to generate HTML", {
                 id: toastId,
                 description: error.message || "Please try again later"
             })
-        } finally {
-            setIsDownloadingPdf(false)
         }
     }
 
@@ -273,23 +382,46 @@ export function FileEditor({
                                 Create Flash Cards
                             </button>
                             {file.exams && ((file.exams.mcqs?.length ?? 0) > 0 || (file.exams.fillBlanks?.length ?? 0) > 0 || (file.exams.solutions?.length ?? 0) > 0) && (
-                                <button
-                                    onClick={handleDownloadPdf}
-                                    disabled={isDownloadingPdf}
-                                    className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {isDownloadingPdf ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Generating...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Download className="mr-2 h-4 w-4" />
-                                            Download PDF
-                                        </>
+                                <div className="relative" ref={downloadMenuRef}>
+                                    <button
+                                        onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+                                        disabled={isDownloadingPdf}
+                                        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isDownloadingPdf ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Generating...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Download className="mr-2 h-4 w-4" />
+                                                Download Exam
+                                                <ChevronDown className="ml-1 h-4 w-4" />
+                                            </>
+                                        )}
+                                    </button>
+                                    {showDownloadMenu && !isDownloadingPdf && (
+                                        <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-background border border-border z-50">
+                                            <div className="py-1">
+                                                <button
+                                                    onClick={handleDownloadPdf}
+                                                    className="w-full text-left px-4 py-2 text-sm hover:bg-accent flex items-center gap-2"
+                                                >
+                                                    <Download className="h-4 w-4" />
+                                                    Download as PDF
+                                                </button>
+                                                <button
+                                                    onClick={handleDownloadHtml}
+                                                    className="w-full text-left px-4 py-2 text-sm hover:bg-accent flex items-center gap-2"
+                                                >
+                                                    <FileCode className="h-4 w-4" />
+                                                    Download as HTML
+                                                </button>
+                                            </div>
+                                        </div>
                                     )}
-                                </button>
+                                </div>
                             )}
                         </>
                     )}
