@@ -41,30 +41,46 @@ export async function POST(req: NextRequest) {
             file.exams.solutions || []
         )
 
-        // Call APDF API
-        const apdfResponse = await fetch("https://apdf.io/api/pdf/file/create", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${process.env.APDF_API_TOKEN}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ html })
-        })
+        // Call APDF API with timeout (25 seconds to stay under Heroku's 30s limit)
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 25000)
 
-        if (!apdfResponse.ok) {
-            const errorData = await apdfResponse.text()
-            console.error("APDF API error:", errorData)
-            throw new Error("Failed to generate PDF")
+        try {
+            const apdfResponse = await fetch("https://apdf.io/api/pdf/file/create", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${process.env.APDF_API_TOKEN}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ html }),
+                signal: controller.signal
+            })
+
+            clearTimeout(timeoutId)
+
+            if (!apdfResponse.ok) {
+                const errorData = await apdfResponse.text()
+                console.error("APDF API error:", errorData)
+                throw new Error("Failed to generate PDF")
+            }
+
+            const pdfData = await apdfResponse.json()
+
+            return NextResponse.json({
+                success: true,
+                pdfUrl: pdfData.file,
+                pages: pdfData.pages,
+                size: pdfData.size
+            })
+        } catch (fetchError: any) {
+            clearTimeout(timeoutId)
+            
+            if (fetchError.name === 'AbortError') {
+                console.error("APDF API timeout after 25 seconds")
+                throw new Error("PDF generation is taking too long. Please try again with a smaller exam.")
+            }
+            throw fetchError
         }
-
-        const pdfData = await apdfResponse.json()
-
-        return NextResponse.json({
-            success: true,
-            pdfUrl: pdfData.file,
-            pages: pdfData.pages,
-            size: pdfData.size
-        })
 
     } catch (error: any) {
         console.error("Error generating PDF:", error)
