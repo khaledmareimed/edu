@@ -199,6 +199,10 @@ export async function getFile(id: string): Promise<File | null> {
 
         if (!file) return null
 
+        // #region agent log
+        const fs = await import('fs'); fs.appendFileSync('/teamspace/studios/this_studio/edu/.cursor/debug.log', JSON.stringify({location:'dashboard.ts:202',message:'Raw file from DB',data:{hasExamGeneration:!!file.examGeneration,examGenerationKeys:file.examGeneration?Object.keys(file.examGeneration):null,rawStatus:file.examGeneration?.status,rawStatusType:typeof file.examGeneration?.status},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H1,H4,H5'})+'\n');
+        // #endregion
+
         return {
             _id: file._id.toString(),
             title: file.title as string,
@@ -211,7 +215,7 @@ export async function getFile(id: string): Promise<File | null> {
                 chunksProcessed: file.examGeneration.chunksProcessed as number,
                 error: file.examGeneration.error as string | null,
                 startedAt: file.examGeneration.startedAt as Date,
-                status: file.examGeneration.status as "pending" | "processing" | "completed" | "failed",
+                status: file.examGeneration.status as "pending" | "processing" | "completed" | "failed" | "generating",
                 totalChunks: file.examGeneration.totalChunks as number,
                 completedAt: file.examGeneration.completedAt as Date | undefined
             } : undefined

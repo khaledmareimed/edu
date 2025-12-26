@@ -11,7 +11,7 @@ export interface ExamGeneration {
     chunksProcessed: number
     error: string | null
     startedAt: Date
-    status: "pending" | "processing" | "completed" | "failed"
+    status: "pending" | "processing" | "completed" | "failed" | "generating"
     totalChunks: number
     completedAt?: Date
 }
