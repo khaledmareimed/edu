@@ -4,7 +4,7 @@ import clientPromise from "@/lib/mongodb"
 import { auth } from "@/auth"
 import { ObjectId } from "mongodb"
 import { revalidatePath } from "next/cache"
-import type { Subject } from "@/types/dashboard"
+import type { Subject, File } from "@/types/dashboard"
 
 const DB_NAME = "edu_app"
 // Using different collection names to avoid conflict with Auth.js collections if any
@@ -99,7 +99,7 @@ export async function deleteSubject(id: string) {
 
 // --- Files ---
 
-export async function getSubject(id: string) {
+export async function getSubject(id: string): Promise<Subject | null> {
     try {
         const user = await getUser()
         const db = await getDb()
@@ -111,15 +111,19 @@ export async function getSubject(id: string) {
         if (!subject) return null
 
         return {
-            ...subject,
-            _id: subject._id.toString()
+            _id: subject._id.toString(),
+            title: subject.title as string,
+            color: subject.color as string,
+            icon: subject.icon as string,
+            userEmail: subject.userEmail as string,
+            createdAt: subject.createdAt as Date
         }
     } catch (e) {
         return null
     }
 }
 
-export async function getFiles(subjectId: string) {
+export async function getFiles(subjectId: string): Promise<File[]> {
     try {
         const user = await getUser()
         const db = await getDb()
@@ -132,8 +136,13 @@ export async function getFiles(subjectId: string) {
             .toArray()
 
         return files.map(file => ({
-            ...file,
-            _id: file._id.toString()
+            _id: file._id.toString(),
+            title: file.title as string,
+            content: file.content as string,
+            subjectId: file.subjectId as string,
+            userEmail: file.userEmail as string,
+            createdAt: file.createdAt as Date,
+            updatedAt: file.updatedAt as Date | undefined
         }))
     } catch (e) {
         return []
@@ -179,7 +188,7 @@ export async function deleteFile(id: string, subjectId: string) {
     }
 }
 
-export async function getFile(id: string) {
+export async function getFile(id: string): Promise<File | null> {
     try {
         const user = await getUser()
         const db = await getDb()
@@ -191,8 +200,13 @@ export async function getFile(id: string) {
         if (!file) return null
 
         return {
-            ...file,
-            _id: file._id.toString()
+            _id: file._id.toString(),
+            title: file.title as string,
+            content: file.content as string,
+            subjectId: file.subjectId as string,
+            userEmail: file.userEmail as string,
+            createdAt: file.createdAt as Date,
+            updatedAt: file.updatedAt as Date | undefined
         }
     } catch (e) {
         return null
